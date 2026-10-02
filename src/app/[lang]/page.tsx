@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Booking from "@/components/Booking";
+import MobileMenu from "@/components/MobileMenu";
 import Reviews from "@/components/Reviews";
 import { I18N, LANGS, type Lang } from "@/lib/content";
 import { aggregate, type PublicReview } from "@/lib/reviews";
@@ -76,7 +77,12 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
           <span aria-current="true">{lang.toUpperCase()}</span>
           <Link href={`/${other}`} hrefLang={other} lang={other}>{other.toUpperCase()}</Link>
         </span>
-        <a href="#booking" className="btn btn-primary">{t.navCta}</a>
+        <a href="#booking" className="btn btn-primary nav-cta">{t.navCta}</a>
+        <MobileMenu
+          label={lang === "fr" ? "Menu" : "Menu"}
+          items={[{ href: "#about", label: t.navVilla }, { href: "#location", label: t.navLocation }, { href: "#gallery", label: t.navGallery }, { href: "#reviews", label: t.navReviews }, { href: "#contact", label: t.navContact }]}
+          cta={{ href: "#booking", label: t.navCta }}
+        />
       </nav>
 
       <header className="hero">

@@ -60,7 +60,25 @@ img { max-width: 100%; }
 .lang { display: inline-flex; gap: 2px; }
 .lang a, .lang span { padding: 4px 10px; font-size: 13px; border: 2px solid var(--color-divider); text-decoration: none; }
 .lang span { background: var(--color-text); color: var(--color-bg); }
-@media (max-width: 900px) { .nav .links { display: none; } .nav { gap: 12px; } }
+.burger, .mobile-menu { display: none; }
+@media (max-width: 900px) {
+  html { scroll-padding-top: 76px; }
+  .nav { gap: 10px; padding-block: 10px; }
+  .nav .links, .nav .nav-cta { display: none; }
+  .nav a.nav-brand { font-size: 16px; white-space: nowrap; }
+  .lang a, .lang span { padding: 8px 10px; }
+  .burger { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: transparent; border: 2px solid var(--color-divider); cursor: pointer; }
+  .bars, .bars::before, .bars::after { display: block; width: 20px; height: 2px; background: var(--color-text); content: ""; position: relative; transition: transform .15s, background .15s; }
+  .bars::before { position: absolute; top: -6px; }
+  .bars::after { position: absolute; top: 6px; }
+  .bars.open { background: transparent; }
+  .bars.open::before { transform: translateY(6px) rotate(45deg); }
+  .bars.open::after { transform: translateY(-6px) rotate(-45deg); }
+  .mobile-menu:not([hidden]) { display: flex; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: var(--color-bg); border-bottom: 2px solid var(--color-divider); padding: 6px var(--gutter) 20px; max-height: calc(100vh - 70px); overflow-y: auto; }
+  .mobile-menu a:not(.btn) { display: block; padding: 16px 0; font-size: 20px; font-weight: 600; color: var(--color-text); text-decoration: none; border-bottom: 1px solid var(--color-neutral-300); }
+  .mobile-menu .btn { margin-top: 18px; justify-content: center; }
+  .rev-actions { margin-left: 0; }
+}
 
 /* buttons */
 .btn { display: inline-flex; align-items: center; justify-content: flex-start; gap: 10px; font: inherit; font-size: 15px; font-weight: 600; line-height: 20px; padding: 12px 22px; border: 2px solid transparent; text-decoration: none; cursor: pointer; white-space: nowrap; text-align: left; }
