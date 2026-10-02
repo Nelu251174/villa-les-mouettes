@@ -24,4 +24,4 @@ Sursa: brief "Villa Les Mouettes" (02.10.2026), design "Modernist" (Archivo, acc
 Cron factura: `POST /api/cron/invoices` cu header `x-cron-secret: $VLM_CRON_SECRET` la fiecare ~5 min (sau butonul din admin).
 Stripe: webhook catre `/api/stripe/webhook`, eveniment `checkout.session.completed`.
 
-Variabile: `VLM_ADMIN_PASSWORD`, `VLM_SECRET` (32+), `VLM_OWNER_EMAIL`, `RESEND_API_KEY`, `VLM_MAIL_FROM`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `VLM_RATE_EUR_PER_NIGHT`, `VLM_CRON_SECRET`, `VLM_ICAL_KEY`, `VLM_CALENDAR_DEMO`, `NEXT_PUBLIC_SITE_URL` (fara ea site-ul cere noindex), `NEXT_PUBLIC_VLM_ACCENT` (`green` | `blue` | `petrol`), `VLM_DATA_DIR`.
+Variabile: `VLM_ADMIN_PASSWORD`, `VLM_SECRET` (32+), `VLM_OWNER_EMAIL`, `RESEND_API_KEY`, `VLM_MAIL_FROM`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `VLM_CRON_SECRET`, `VLM_ICAL_KEY`, `VLM_CALENDAR_DEMO`, `NEXT_PUBLIC_SITE_URL` (fara ea site-ul cere noindex), `NEXT_PUBLIC_VLM_ACCENT` (`green` | `blue` | `petrol`), `VLM_DATA_DIR`.

@@ -53,7 +53,7 @@ Daca certificatul nu se emite: DNS nu a propagat inca sau porturile 80/443 sunt 
 ## 6. Plati (Stripe) — doar cand ai tariful
 1. Stripe Dashboard → Developers → API keys → `STRIPE_SECRET_KEY`.
 2. Webhooks → Add endpoint `https://villalesmouettes.com/api/stripe/webhook`, eveniment `checkout.session.completed` → copiaza "Signing secret" in `STRIPE_WEBHOOK_SECRET`.
-3. `VLM_RATE_EUR_PER_NIGHT=<tarif>`; `docker compose up -d`.
+3. Tarifele sunt in `src/lib/pricing.ts` (sezoane, +200 EUR/persoana peste 4, minim 3 nopti, maxim 8 persoane). `docker compose up -d`.
 4. Test in **modul test** Stripe (card 4242 4242 4242 4242): cerere → buton de plata activ → dupa plata, rezervarea devine `confirmed` in `/admin`, datele devin ocupate, factura pleaca in ~5 minute. Abia dupa trece pe chei live.
 
 ## 7. Calendar real si lansare

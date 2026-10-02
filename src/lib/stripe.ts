@@ -1,19 +1,23 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { nightsBetween } from "./availability";
+import { priceStay } from "./pricing";
 import type { Reservation } from "./store";
 
-/** Plata e disponibila doar cu cheie Stripe + tarif setat de proprietar (VLM_RATE_EUR_PER_NIGHT). Nimic inventat. */
+/** Plata e disponibila doar cu cheie Stripe si adresa site-ului setate. Suma vine din tarifar (src/lib/pricing.ts). */
 export function paymentConfigured(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY && Number(process.env.VLM_RATE_EUR_PER_NIGHT) > 0 && !!process.env.NEXT_PUBLIC_SITE_URL;
+  return !!process.env.STRIPE_SECRET_KEY && !!process.env.NEXT_PUBLIC_SITE_URL;
 }
 
-export function amountCents(r: Pick<Reservation, "arrival" | "departure">): number {
-  return Math.round(Number(process.env.VLM_RATE_EUR_PER_NIGHT) * 100) * nightsBetween(r.arrival, r.departure);
+/** Totalul sejurului in cenți sau null daca regulile (minim nopti / maxim persoane) nu sunt respectate. */
+export function amountCents(r: Pick<Reservation, "arrival" | "departure" | "adults" | "children">): number | null {
+  const p = priceStay(r.arrival, r.departure, r.adults + r.children);
+  return p.ok ? p.totalCents : null;
 }
 
 export async function createCheckout(r: Reservation): Promise<{ url: string; sessionId: string } | null> {
   if (!paymentConfigured()) return null;
+  const amount = amountCents(r);
+  if (amount === null) return null;
   const base = process.env.NEXT_PUBLIC_SITE_URL!;
   const body = new URLSearchParams({
     mode: "payment",
@@ -26,7 +30,7 @@ export async function createCheckout(r: Reservation): Promise<{ url: string; ses
     cancel_url: `${base}/${r.lang}#booking`,
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "eur",
-    "line_items[0][price_data][unit_amount]": String(amountCents(r)),
+    "line_items[0][price_data][unit_amount]": String(amount),
     "line_items[0][price_data][product_data][name]": `Villa Les Mouettes ${r.arrival} → ${r.departure}`,
   });
   try {

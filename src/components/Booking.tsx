@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { I18N, type Lang } from "@/lib/content";
 import { SITE } from "@/lib/site";
-import { type Range, isBookedIn, pickDate, rangeIsFree, toIso, addDays } from "@/lib/availability";
+import { type Range, isBookedIn, pickDate, rangeIsFree, toIso, addDays, nightsBetween } from "@/lib/availability";
 
 type Pay = { url: string | null; emailSent: boolean };
-type Quote = { status: "idle" | "loading" | "ok" | "taken" | "error"; nights: number; payment: boolean; amountCents: number | null };
-const NO_QUOTE: Quote = { status: "idle", nights: 0, payment: false, amountCents: null };
+type Quote = { status: "idle" | "loading" | "ok" | "taken" | "rule" | "error"; nights: number; payment: boolean; amountCents: number | null; extraCents: number | null; rule: string | null };
+const NO_QUOTE: Quote = { status: "idle", nights: 0, payment: false, amountCents: null, extraCents: null, rule: null };
 type Phase = "idle" | "sending" | "sent" | "failed";
 
 export default function Booking({ lang }: { lang: Lang }) {
@@ -53,14 +53,14 @@ export default function Booking({ lang }: { lang: Lang }) {
 
   const fmt = (iso: string | null) => (iso ? new Date(iso + "T00:00:00").toLocaleDateString(t.locale, { weekday: "short", day: "numeric", month: "short" }) : "");
 
-  async function checkQuote(arrival: string, departure: string) {
+  async function checkQuote(arrival: string, departure: string, guests: number) {
     const seq = ++quoteSeq.current;
     setQuote({ ...NO_QUOTE, status: "loading" });
     try {
-      const r = await fetch(`/api/quote?arrival=${arrival}&departure=${departure}`);
-      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; available?: boolean; nights?: number; payment?: boolean; amountCents?: number | null };
+      const r = await fetch(`/api/quote?arrival=${arrival}&departure=${departure}&guests=${guests}`);
+      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; available?: boolean; nights?: number; payment?: boolean; amountCents?: number | null; extraCents?: number | null; rule?: string | null };
       if (seq !== quoteSeq.current) return; // raspuns invechit: s-au schimbat datele intre timp
-      if (r.ok && j.ok) setQuote({ status: j.available ? "ok" : "taken", nights: j.nights ?? 0, payment: !!j.payment, amountCents: j.amountCents ?? null });
+      if (r.ok && j.ok) setQuote({ status: !j.available ? "taken" : j.rule ? "rule" : "ok", nights: j.nights ?? 0, payment: !!j.payment, amountCents: j.amountCents ?? null, extraCents: j.extraCents ?? null, rule: j.rule ?? null });
       else setQuote({ ...NO_QUOTE, status: "error" });
     } catch {
       if (seq === quoteSeq.current) setQuote({ ...NO_QUOTE, status: "error" });
@@ -72,8 +72,14 @@ export default function Booking({ lang }: { lang: Lang }) {
     setError("");
     const next = pickDate(sel, iso, isBooked);
     setSel(next);
-    if (next.arrival && next.departure) void checkQuote(next.arrival, next.departure);
+    if (next.arrival && next.departure) void checkQuote(next.arrival, next.departure, Number(form.adults) + Number(form.children));
     else { quoteSeq.current++; setQuote(NO_QUOTE); }
+  }
+
+  function changeGuests(patch: { adults?: string; children?: string }) {
+    const f = { ...form, ...patch };
+    setForm(f);
+    if (sel.arrival && sel.departure) void checkQuote(sel.arrival, sel.departure, Number(f.adults) + Number(f.children));
   }
 
   function goToForm() {
@@ -87,6 +93,8 @@ export default function Booking({ lang }: { lang: Lang }) {
     if (!sel.arrival || !sel.departure) return setError(t.errDates);
     if (form.name.trim().length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim())) return setError(t.errFields);
     if (!rangeIsFree(sel.arrival, sel.departure, isBooked)) return setError(t.errRange);
+    if (Number(form.adults) + Number(form.children) > 8) return setError(t.fGuestsErr);
+    if (nightsBetween(sel.arrival, sel.departure) < 3) return setError(t.qMinNights);
     setError("");
     setPhase("sending");
     if (!key.current) key.current = crypto.randomUUID(); // cheie de idempotenta pe actiune
@@ -104,7 +112,7 @@ export default function Booking({ lang }: { lang: Lang }) {
         if (url) window.location.assign(url); // direct la plata, fara pas intermediar
         return;
       } // succes afisat DOAR dupa confirmarea serverului
-      setError(j.error === "dates_taken" ? t.errRange : j.error === "fields" ? t.errFields : j.error === "dates" ? t.errDates : t.errServer);
+      setError(j.error === "min_nights" ? t.qMinNights : j.error === "max_guests" ? t.fGuestsErr : j.error === "dates_taken" ? t.errRange : j.error === "fields" ? t.errFields : j.error === "dates" ? t.errDates : t.errServer);
       key.current = "";
       setPhase("failed");
     } catch {
@@ -175,12 +183,19 @@ export default function Booking({ lang }: { lang: Lang }) {
               <div className="panel" role="status" aria-live="polite" style={{ marginBottom: 28, borderColor: quote.status === "ok" ? "var(--color-accent)" : undefined }}>
                 {quote.status === "loading" && <p className="muted" style={{ margin: 0 }}>{t.qChecking}</p>}
                 {quote.status === "taken" && <p className="err" style={{ margin: 0 }}>{t.qTaken}</p>}
+                {quote.status === "rule" && <p className="err" style={{ margin: 0 }}>{quote.rule === "min_nights" ? t.qMinNights : t.qMaxGuests}</p>}
                 {quote.status === "error" && <p className="err" style={{ margin: 0 }}>{t.qError}</p>}
                 {quote.status === "ok" && (
                   <>
                     <p className="label" style={{ color: "var(--color-accent-700)", margin: 0, display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 10, height: 10, background: "var(--color-accent)" }} />{t.qAvailable}</p>
                     <p className="display" style={{ fontSize: 20, lineHeight: "28px", margin: "10px 0 0" }}>{fmt(sel.arrival)} → {fmt(sel.departure)} · {quote.nights} {t.qNights}</p>
-                    {quote.amountCents !== null && <p className="display num" style={{ fontSize: 28, lineHeight: "36px", margin: "6px 0 0", color: "var(--color-accent)" }}>{t.qTotal}: {(quote.amountCents / 100).toLocaleString(t.locale, { style: "currency", currency: "EUR" })}</p>}
+                    {quote.amountCents !== null && (
+                      <>
+                        <p className="display num" style={{ fontSize: 28, lineHeight: "36px", margin: "6px 0 0", color: "var(--color-accent)" }}>{t.qTotal}: {(quote.amountCents / 100).toLocaleString(t.locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}</p>
+                        <p className="muted num" style={{ fontSize: 13.5, lineHeight: "22px", margin: "2px 0 0" }}>≈ {(quote.amountCents / 100 / Math.max(1, quote.nights)).toLocaleString(t.locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 })} {t.qPerNightAvg}{quote.extraCents ? ` · ${t.qExtraIncl}` : ""}</p>
+                        <p className="muted" style={{ fontSize: 13, lineHeight: "20px", margin: "2px 0 0" }}>{t.qTaxNote}</p>
+                      </>
+                    )}
                     <p className="muted" style={{ fontSize: 13.5, lineHeight: "22px", margin: "10px 0 0" }}>{quote.payment ? t.qPayNote : t.qReqNote}</p>
                     <div style={{ marginTop: 14 }}><button type="button" className="btn btn-primary" onClick={goToForm}>{quote.payment ? t.qCtaPay : t.qCtaRequest}</button></div>
                   </>
@@ -190,8 +205,8 @@ export default function Booking({ lang }: { lang: Lang }) {
             <div className="form-grid">
               <label className="field">{t.fArrival}<input className="input" readOnly value={fmt(sel.arrival)} placeholder={t.fSelect} /></label>
               <label className="field">{t.fDeparture}<input className="input" readOnly value={fmt(sel.departure)} placeholder={t.fSelect} /></label>
-              <label className="field">{t.fAdults}<select className="input" value={form.adults} onChange={(e) => setForm({ ...form, adults: e.target.value })} disabled={busy}>{[1, 2, 3, 4, 5, 6].map((n) => <option key={n}>{n}</option>)}</select></label>
-              <label className="field">{t.fChildren}<select className="input" value={form.children} onChange={(e) => setForm({ ...form, children: e.target.value })} disabled={busy}>{[0, 1, 2, 3, 4].map((n) => <option key={n}>{n}</option>)}</select></label>
+              <label className="field">{t.fAdults}<select className="input" value={form.adults} onChange={(e) => changeGuests({ adults: e.target.value })} disabled={busy}>{[1, 2, 3, 4, 5, 6].map((n) => <option key={n}>{n}</option>)}</select></label>
+              <label className="field">{t.fChildren}<select className="input" value={form.children} onChange={(e) => changeGuests({ children: e.target.value })} disabled={busy}>{[0, 1, 2, 3, 4].map((n) => <option key={n}>{n}</option>)}</select></label>
               <label className="field full">{t.fName}<input id="reserve-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.fNamePh} autoComplete="name" disabled={busy} /></label>
               <label className="field full">{t.fEmail}<input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" autoComplete="email" disabled={busy} /></label>
               <label className="field full">{t.fNotes}<input className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t.fNotesPh} disabled={busy} /></label>

@@ -9,7 +9,7 @@ export async function GET() {
   const [reservations, reviews, blocks, audit, outbox] = await Promise.all([listReservations(), listReviews(), listBlocks(), listAudit(), listOutbox()]);
   const cfg = {
     mail: !!process.env.RESEND_API_KEY && !!process.env.VLM_MAIL_FROM,
-    stripe: !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET && Number(process.env.VLM_RATE_EUR_PER_NIGHT) > 0,
+    stripe: !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET,
     calendarLive: process.env.VLM_CALENDAR_DEMO !== "1",
   };
   return NextResponse.json({ reservations: reservations.reverse(), reviews: reviews.reverse(), blocks, audit: audit.slice(-50).reverse(), outbox: outbox.slice(-20).reverse(), cfg });

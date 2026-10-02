@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { isIso, nightsBetween, toIso } from "@/lib/availability";
+import { MAX_GUESTS, MIN_NIGHTS, priceStay } from "@/lib/pricing";
 import { clientConfirmation, ownerEmail, ownerNotification, sendMail } from "@/lib/mail";
-import { amountCents, createCheckout } from "@/lib/stripe";
+import { createCheckout } from "@/lib/stripe";
 import { appendAudit, createReservation, patchReservation } from "@/lib/store";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -27,9 +28,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "fields" }, { status: 422 });
   }
 
+  const price = priceStay(arrival, departure, adults + children);
+  if (!price.ok) {
+    return NextResponse.json({ ok: false, error: price.reason === "min_nights" ? "min_nights" : price.reason === "max_guests" ? "max_guests" : "fields", minNights: MIN_NIGHTS, maxGuests: MAX_GUESTS }, { status: 422 });
+  }
+
   const res = await createReservation({ arrival, departure, adults, children, name, email, notes, lang });
   if (!res.ok) return NextResponse.json({ ok: false, error: "dates_taken" }, { status: 409 });
   const r = res.reservation;
+  await patchReservation(r.id, { amountCents: price.totalCents });
   await appendAudit({ actor: "guest", action: "reservation.create", target: r.id, result: "pending" });
 
   // Raspunsul spune exact ce s-a intamplat: sent = livrat de furnizor, nu "pus in coada".
@@ -39,7 +46,7 @@ export async function POST(req: Request) {
   const owner = ownerEmail() ? await sendMail(ownerEmail(), o.subject, o.text) : { sent: false };
 
   const checkout = await createCheckout(r);
-  if (checkout) await patchReservation(r.id, { stripeSessionId: checkout.sessionId, amountCents: amountCents(r) });
+  if (checkout) await patchReservation(r.id, { stripeSessionId: checkout.sessionId, amountCents: price.totalCents });
 
   return NextResponse.json(
     { ok: true, id: r.id, status: r.status, payment: checkout ? { available: true, url: checkout.url } : { available: false }, emails: { client: clientMail.sent, owner: owner.sent } },
