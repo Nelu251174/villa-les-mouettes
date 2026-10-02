@@ -57,7 +57,7 @@ Daca certificatul nu se emite: DNS nu a propagat inca sau porturile 80/443 sunt 
 4. Test in **modul test** Stripe (card 4242 4242 4242 4242): cerere → buton de plata activ → dupa plata, rezervarea devine `confirmed` in `/admin`, datele devin ocupate, factura pleaca in ~5 minute. Abia dupa trece pe chei live.
 
 ## 7. Calendar real si lansare
-- Introdu blocarile reale din `/admin` → Blocked dates, apoi pune `VLM_CALENDAR_LIVE=1` (dispare modelul DEMO).
+- Calendarul e curat implicit. Introdu blocarile reale din `/admin` → Blocked dates.
 - Inlocuieste in `src/lib/site.ts` adresa si coordonatele reale (`addressConfirmed`, `geo.confirmed`) si pozele originale in `public/photos/`.
 - Cat timp nu ai recenzii reale, 4.9/27 si cele 3 recenzii raman marcate DEMO.
 - Cu `NEXT_PUBLIC_SITE_URL` setat, site-ul nu mai are `noindex`. Trimite `https://villalesmouettes.com/sitemap.xml` in Google Search Console.

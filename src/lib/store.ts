@@ -73,8 +73,8 @@ export function appendMail(m: Mail): Promise<void> {
   });
 }
 
-/** Calendar DEMO = modelul din prototip. Se opreste cu VLM_CALENDAR_LIVE=1 cand proprietarul isi gestioneaza datele. */
-export const calendarIsDemo = () => process.env.VLM_CALENDAR_LIVE !== "1";
+/** Calendarul e curat implicit: se blocheaza doar datele reale (rezervari confirmate + blocari din admin). Modelul DEMO apare doar cu VLM_CALENDAR_DEMO=1. */
+export const calendarIsDemo = () => process.env.VLM_CALENDAR_DEMO === "1";
 
 export function demoRanges(monthsAhead = 18): Range[] {
   const out: Range[] = [];

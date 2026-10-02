@@ -51,6 +51,8 @@ img { max-width: 100%; }
 
 /* nav */
 .nav { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 24px; padding-block: 14px; padding-inline: max(var(--gutter), calc((100% - 1200px) / 2 + var(--gutter))); background: var(--color-bg); border-bottom: 2px solid var(--color-divider); font-size: 14px; }
+.nav a.nav-brand { color: var(--color-text); text-decoration: none; }
+.nav a.nav-brand:hover { color: var(--color-accent-700); }
 .nav-brand { font-family: var(--font-heading); font-weight: 800; font-size: 18px; letter-spacing: -0.01em; margin-right: auto; }
 .nav a:not(.btn) { color: var(--color-text); text-decoration: none; }
 .nav a:not(.btn):hover { color: var(--color-accent-700); }

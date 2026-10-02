@@ -6,7 +6,6 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 process.env.VLM_DATA_DIR = mkdtempSync(path.join(tmpdir(), "vlm-"));
 process.env.VLM_SECRET = "x".repeat(40);
-process.env.VLM_CALENDAR_LIVE = "1";
 
 let store: typeof import("../src/lib/store");
 let stripe: typeof import("../src/lib/stripe");

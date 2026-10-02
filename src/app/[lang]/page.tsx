@@ -5,7 +5,7 @@ import Booking from "@/components/Booking";
 import Reviews from "@/components/Reviews";
 import { I18N, LANGS, type Lang } from "@/lib/content";
 import { aggregate, type PublicReview } from "@/lib/reviews";
-import { ALT, GALLERY, PHOTOS, SITE } from "@/lib/site";
+import { ALT, GALLERY, MAPS_HREF, PHOTOS, SITE } from "@/lib/site";
 import { listReviews } from "@/lib/store";
 
 export const revalidate = 60;
@@ -66,8 +66,9 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <span id="top" />
       <nav className="nav" aria-label="Main">
-        <span className="nav-brand">Villa Les Mouettes</span>
+        <a href="#top" className="nav-brand" aria-label={lang === "fr" ? "Villa Les Mouettes — haut de page" : "Villa Les Mouettes — back to top"}>Villa Les Mouettes</a>
         <div className="links">
           <a href="#about">{t.navVilla}</a><a href="#location">{t.navLocation}</a><a href="#gallery">{t.navGallery}</a><a href="#reviews">{t.navReviews}</a><a href="#contact">{t.navContact}</a>
         </div>
@@ -163,19 +164,19 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
             <div>
               <p className="body" style={{ margin: "0 0 28px", maxWidth: "48ch" }}>{t.conCopy}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "flex-start" }}>
-                <a href={SITE.whatsappHref} target="_blank" rel="noopener" className="btn btn-primary">
+                <a href={`${SITE.whatsappHref}?text=${encodeURIComponent(lang === "fr" ? "Bonjour, je souhaite des informations sur la Villa Les Mouettes." : "Hello, I would like information about Villa Les Mouettes.")}`} target="_blank" rel="noopener" className="btn btn-primary">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={WHATSAPP} /></svg>{t.conWhatsapp}
                 </a>
                 <a href={SITE.phoneHref} className="btn btn-ghost">{t.conCall} {SITE.phone}</a>
                 <a href={`mailto:${SITE.email}`} className="btn btn-ghost">{SITE.email}</a>
               </div>
               <p className="label" style={{ color: "var(--color-accent-700)", margin: "42px 0 14px" }}>{t.conAddrLabel}</p>
-              <a href={SITE.mapsHref} target="_blank" rel="noopener" className="display" style={{ fontSize: 20, lineHeight: "28px", letterSpacing: "-0.01em", textDecoration: "underline", textUnderlineOffset: 4 }}>{SITE.addressLine} ↗</a>
+              <a href={MAPS_HREF} target="_blank" rel="noopener" className="display" style={{ fontSize: 20, lineHeight: "28px", letterSpacing: "-0.01em", textDecoration: "underline", textUnderlineOffset: 4 }}>{SITE.addressLine} ↗</a>
               {!SITE.addressConfirmed && <p className="label" style={{ margin: "10px 0 0", color: "var(--color-accent-700)" }}>{t.demo} — {lang === "fr" ? "adresse exacte à confirmer" : "exact address to be confirmed"}</p>}
               <p className="muted" style={{ fontSize: 13, lineHeight: "22px", margin: "14px 0 0" }}>{t.conAddrNote}</p>
             </div>
             <div>
-              <a className="map" href={SITE.mapsHref} target="_blank" rel="noopener" aria-label={t.conMapCta}>
+              <a className="map" href={MAPS_HREF} target="_blank" rel="noopener" aria-label={t.conMapCta}>
                 <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=7.4000%2C43.7350%2C7.5150%2C43.7900&layer=mapnik&marker=43.7621%2C7.4573" title="Map — Roquebrune-Cap-Martin" loading="lazy" />
                 <span>{t.conMapCta}<b aria-hidden="true">↗</b></span>
               </a>

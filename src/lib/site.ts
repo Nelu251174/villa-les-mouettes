@@ -3,12 +3,12 @@ export const SITE = {
   // Numar/email: furnizate de OWNER (README handoff). Adresa exacta si coordonatele NU sunt confirmate.
   phone: "+33 688 462 481",
   phoneHref: "tel:+33688462481",
+  whatsappNumber: "33688462481",
   whatsappHref: "https://wa.me/33688462481",
   email: "support@villalesmouettes.com",
   addressLine: "Villa Les Mouettes, Roquebrune-Cap-Martin, 06190, France",
   addressConfirmed: false,
   geo: { lat: 43.7621, lng: 7.4573, confirmed: false },
-  mapsHref: "https://www.google.com/maps/search/?api=1&query=Villa+Les+Mouettes+Roquebrune-Cap-Martin+France",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "",
 };
 
@@ -42,3 +42,8 @@ export const GALLERY: { src: string; alt: string; cap: string; capD: string }[] 
   { src: "entrance-hall", alt: "Panelled entrance hall and staircase", cap: "cap12", capD: "capD12" },
   { src: "blue-bedroom", alt: "Guest bedroom in blue tones", cap: "cap13", capD: "capD13" },
 ].map((g) => ({ ...g, src: `/photos/${g.src}.jpg` }));
+
+// Link Google Maps: cu coordonate confirmate deschide direct pinul exact; altfel cade pe cautare dupa nume (NEconfirmat).
+export const MAPS_HREF = SITE.geo.confirmed
+  ? `https://www.google.com/maps/search/?api=1&query=${SITE.geo.lat},${SITE.geo.lng}`
+  : "https://www.google.com/maps/search/?api=1&query=Villa+Les+Mouettes+Roquebrune-Cap-Martin+France";
