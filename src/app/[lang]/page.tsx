@@ -125,7 +125,33 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
         <hr className="rule" />
         <Split imageFirst kicker={`03 — ${t.villaKicker}`} title={t.f3Title} copy={[t.f3Copy]} img={PHOTOS.hammam} alt={ALT.hammam} w={1171} h={658} />
         <hr className="rule" />
-        <Split id="location" kicker={t.locKicker} title={t.locTitle} copy={[t.locCopy, t.locCopy2]} img={PHOTOS.terrace} alt={ALT.terrace} w={1169} h={661} />
+        <section id="location">
+          <div className="split" style={{ paddingTop: 40, paddingBottom: 40 }}>
+            <figure style={{ margin: 0 }}>
+              <Image className="photo" src={PHOTOS.terrace} alt={ALT.terrace} width={1169} height={661} sizes="(max-width: 900px) 100vw, 560px" />
+            </figure>
+            <div>
+              <span className="kicker">{t.locKicker}</span>
+              <h2 className="h2">{t.locTitle}</h2>
+              <p className="body" style={{ marginTop: 28 }}>{t.locCopy}</p>
+              <p className="body">{t.locCopy2}</p>
+            </div>
+          </div>
+          <div className="book-grid" style={{ gap: "42px clamp(24px, 5vw, 96px)", paddingBottom: 84 }}>
+            <div>
+              <p className="label" style={{ color: "var(--color-accent-700)", margin: "0 0 14px" }}>{t.conAddrLabel}</p>
+              <a href={MAPS_HREF} target="_blank" rel="noopener" className="display" style={{ fontSize: 20, lineHeight: "28px", letterSpacing: "-0.01em", textDecoration: "underline", textUnderlineOffset: 4 }}>{SITE.addressLine} ↗</a>
+              {!SITE.addressConfirmed && <p className="label" style={{ margin: "10px 0 0", color: "var(--color-accent-700)" }}>{t.demo} — {lang === "fr" ? "adresse exacte à confirmer" : "exact address to be confirmed"}</p>}
+              <p className="muted" style={{ fontSize: 13, lineHeight: "22px", margin: "14px 0 0" }}>{t.conAddrNote}</p>
+            </div>
+            <div>
+              <a className="map" href={MAPS_HREF} target="_blank" rel="noopener" aria-label={t.conMapCta}>
+                <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=7.4000%2C43.7350%2C7.5150%2C43.7900&layer=mapnik&marker=43.7621%2C7.4573" title="Map — Roquebrune-Cap-Martin" loading="lazy" />
+                <span>{t.conMapCta}<b aria-hidden="true">↗</b></span>
+              </a>
+            </div>
+          </div>
+        </section>
         <hr className="rule" />
 
         <section id="gallery" style={{ padding: "84px 0 98px" }}>
@@ -160,7 +186,7 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
         <section id="contact" className="section">
           <span className="kicker">{t.conKicker}</span>
           <h2 className="h2" style={{ marginBottom: 42 }}>{t.conTitle}</h2>
-          <div className="book-grid" style={{ gap: "42px clamp(24px, 5vw, 96px)" }}>
+          <div>
             <div>
               <p className="body" style={{ margin: "0 0 28px", maxWidth: "48ch" }}>{t.conCopy}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "flex-start" }}>
@@ -170,16 +196,6 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
                 <a href={SITE.phoneHref} className="btn btn-ghost">{t.conCall} {SITE.phone}</a>
                 <a href={`mailto:${SITE.email}`} className="btn btn-ghost">{SITE.email}</a>
               </div>
-              <p className="label" style={{ color: "var(--color-accent-700)", margin: "42px 0 14px" }}>{t.conAddrLabel}</p>
-              <a href={MAPS_HREF} target="_blank" rel="noopener" className="display" style={{ fontSize: 20, lineHeight: "28px", letterSpacing: "-0.01em", textDecoration: "underline", textUnderlineOffset: 4 }}>{SITE.addressLine} ↗</a>
-              {!SITE.addressConfirmed && <p className="label" style={{ margin: "10px 0 0", color: "var(--color-accent-700)" }}>{t.demo} — {lang === "fr" ? "adresse exacte à confirmer" : "exact address to be confirmed"}</p>}
-              <p className="muted" style={{ fontSize: 13, lineHeight: "22px", margin: "14px 0 0" }}>{t.conAddrNote}</p>
-            </div>
-            <div>
-              <a className="map" href={MAPS_HREF} target="_blank" rel="noopener" aria-label={t.conMapCta}>
-                <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=7.4000%2C43.7350%2C7.5150%2C43.7900&layer=mapnik&marker=43.7621%2C7.4573" title="Map — Roquebrune-Cap-Martin" loading="lazy" />
-                <span>{t.conMapCta}<b aria-hidden="true">↗</b></span>
-              </a>
             </div>
           </div>
         </section>

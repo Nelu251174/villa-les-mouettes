@@ -143,6 +143,6 @@ img { max-width: 100%; }
 .poster .btn-ghost { color: var(--color-bg); }
 .quote { font-family: var(--font-heading); font-weight: 800; font-size: clamp(24px, 2.6vw, 34px); line-height: 42px; letter-spacing: -0.015em; max-width: 34ch; margin: 0; }
 .map { display: block; border: 2px solid var(--color-divider); text-decoration: none; }
-.map iframe { display: block; width: 100%; height: 380px; border: 0; pointer-events: none; }
+.map iframe { display: block; width: 100%; height: 300px; border: 0; pointer-events: none; }
 .map span { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-accent-700); }
 footer.foot { padding: 56px 0; font-size: 13px; line-height: 28px; }
