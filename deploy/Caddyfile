@@ -1,0 +1,8 @@
+villalesmouettes.com {
+	encode zstd gzip
+	reverse_proxy app:3100
+}
+
+www.villalesmouettes.com {
+	redir https://villalesmouettes.com{uri} permanent
+}

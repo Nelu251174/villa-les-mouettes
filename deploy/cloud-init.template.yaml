@@ -1,0 +1,33 @@
+#cloud-config
+# Se lipeste in Hetzner la "Cloud config" cand creezi serverul. Inlocuieste __ADMIN_PASSWORD__ si __OWNER_EMAIL__.
+# Dupa primul boot (5-10 minute) site-ul porneste singur. Jurnal: /var/log/villa-setup.log
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - git
+  - ufw
+  - openssl
+write_files:
+  - path: /root/setup-villa.sh
+    permissions: "0700"
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      ufw allow OpenSSH
+      ufw allow 80
+      ufw allow 443
+      ufw --force enable
+      git clone https://github.com/Nelu251174/villa-les-mouettes.git /opt/villa
+      cd /opt/villa/deploy
+      cp .env.production.example .env
+      for k in VLM_SECRET VLM_CRON_SECRET VLM_ICAL_KEY; do
+        sed -i "s|^$k=.*|$k=$(openssl rand -hex 24)|" .env
+      done
+      sed -i "s|^VLM_ADMIN_PASSWORD=.*|VLM_ADMIN_PASSWORD=__ADMIN_PASSWORD__|" .env
+      sed -i "s|^VLM_OWNER_EMAIL=.*|VLM_OWNER_EMAIL=__OWNER_EMAIL__|" .env
+      chmod 600 .env
+      docker compose up -d --build
+      echo "SETUP-OK $(date -u +%FT%TZ)"
+runcmd:
+  - [bash, -c, "/root/setup-villa.sh >> /var/log/villa-setup.log 2>&1"]

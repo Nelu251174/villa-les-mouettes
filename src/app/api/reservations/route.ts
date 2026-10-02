@@ -1,0 +1,48 @@
+import { NextResponse } from "next/server";
+import { isIso, nightsBetween, toIso } from "@/lib/availability";
+import { clientConfirmation, ownerEmail, ownerNotification, sendMail } from "@/lib/mail";
+import { amountCents, createCheckout } from "@/lib/stripe";
+import { appendAudit, createReservation, patchReservation } from "@/lib/store";
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export async function POST(req: Request) {
+  let b: Record<string, unknown>;
+  try {
+    b = (await req.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+  const arrival = b.arrival, departure = b.departure;
+  const name = typeof b.name === "string" ? b.name.trim() : "";
+  const email = typeof b.email === "string" ? b.email.trim() : "";
+  const notes = typeof b.notes === "string" ? b.notes.trim().slice(0, 1000) : "";
+  const adults = Number(b.adults), children = Number(b.children);
+  const lang = b.lang === "fr" ? "fr" : "en";
+
+  if (!isIso(arrival) || !isIso(departure) || departure <= arrival || arrival < toIso(new Date()) || nightsBetween(arrival, departure) > 60) {
+    return NextResponse.json({ ok: false, error: "dates" }, { status: 422 });
+  }
+  if (name.length < 2 || name.length > 120 || !EMAIL.test(email) || email.length > 200 || !Number.isInteger(adults) || adults < 1 || adults > 6 || !Number.isInteger(children) || children < 0 || children > 4) {
+    return NextResponse.json({ ok: false, error: "fields" }, { status: 422 });
+  }
+
+  const res = await createReservation({ arrival, departure, adults, children, name, email, notes, lang });
+  if (!res.ok) return NextResponse.json({ ok: false, error: "dates_taken" }, { status: 409 });
+  const r = res.reservation;
+  await appendAudit({ actor: "guest", action: "reservation.create", target: r.id, result: "pending" });
+
+  // Raspunsul spune exact ce s-a intamplat: sent = livrat de furnizor, nu "pus in coada".
+  const c = clientConfirmation(r);
+  const clientMail = await sendMail(email, c.subject, c.text);
+  const o = ownerNotification(r, r.id);
+  const owner = ownerEmail() ? await sendMail(ownerEmail(), o.subject, o.text) : { sent: false };
+
+  const checkout = await createCheckout(r);
+  if (checkout) await patchReservation(r.id, { stripeSessionId: checkout.sessionId, amountCents: amountCents(r) });
+
+  return NextResponse.json(
+    { ok: true, id: r.id, status: r.status, payment: checkout ? { available: true, url: checkout.url } : { available: false }, emails: { client: clientMail.sent, owner: owner.sent } },
+    { status: 201 },
+  );
+}

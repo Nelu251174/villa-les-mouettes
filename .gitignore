@@ -1,0 +1,7 @@
+.next/
+node_modules/
+.data/
+next-env.d.ts
+*.tsbuildinfo
+.env*
+!.env.production.example
