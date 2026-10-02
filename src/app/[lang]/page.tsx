@@ -5,7 +5,7 @@ import Booking from "@/components/Booking";
 import Reviews from "@/components/Reviews";
 import { I18N, LANGS, type Lang } from "@/lib/content";
 import { aggregate, type PublicReview } from "@/lib/reviews";
-import { ALT, GALLERY, MAPS_HREF, PHOTOS, SITE } from "@/lib/site";
+import { ALT, GALLERY, MAPS_HREF, OSM_EMBED, PHOTOS, SITE } from "@/lib/site";
 import { listReviews } from "@/lib/store";
 
 export const revalidate = 60;
@@ -146,7 +146,7 @@ export default async function Page({ params }: { params: Promise<{ lang: string 
             </div>
             <div>
               <a className="map" href={MAPS_HREF} target="_blank" rel="noopener" aria-label={t.conMapCta}>
-                <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=7.4000%2C43.7350%2C7.5150%2C43.7900&layer=mapnik&marker=43.7621%2C7.4573" title="Map — Roquebrune-Cap-Martin" loading="lazy" />
+                <iframe src={OSM_EMBED} title="Map — Roquebrune-Cap-Martin" loading="lazy" />
                 <span>{t.conMapCta}<b aria-hidden="true">↗</b></span>
               </a>
             </div>

@@ -7,8 +7,9 @@ export const SITE = {
   whatsappHref: "https://wa.me/33688462481",
   email: "support@villalesmouettes.com",
   addressLine: "Villa Les Mouettes, Roquebrune-Cap-Martin, 06190, France",
-  addressConfirmed: false,
-  geo: { lat: 43.7621, lng: 7.4573, confirmed: false },
+  // Pin exact furnizat de OWNER (link Google Maps, 02.10.2026). Adresa-text ramane generica (strada exacta nu a fost data).
+  addressConfirmed: true,
+  geo: { lat: 43.756691, lng: 7.448854, confirmed: true },
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "",
 };
 
@@ -47,3 +48,7 @@ export const GALLERY: { src: string; alt: string; cap: string; capD: string }[] 
 export const MAPS_HREF = SITE.geo.confirmed
   ? `https://www.google.com/maps/search/?api=1&query=${SITE.geo.lat},${SITE.geo.lng}`
   : "https://www.google.com/maps/search/?api=1&query=Villa+Les+Mouettes+Roquebrune-Cap-Martin+France";
+
+// Harta incorporata (OpenStreetMap) centrata pe pinul exact; fereastra ~1,3 km.
+const D = 0.006;
+export const OSM_EMBED = `https://www.openstreetmap.org/export/embed.html?bbox=${SITE.geo.lng - D}%2C${SITE.geo.lat - D / 1.4}%2C${SITE.geo.lng + D}%2C${SITE.geo.lat + D / 1.4}&layer=mapnik&marker=${SITE.geo.lat}%2C${SITE.geo.lng}`;
