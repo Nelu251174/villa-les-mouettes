@@ -6,6 +6,8 @@ import { SITE } from "@/lib/site";
 import { type Range, isBookedIn, pickDate, rangeIsFree, toIso, addDays } from "@/lib/availability";
 
 type Pay = { url: string | null; emailSent: boolean };
+type Quote = { status: "idle" | "loading" | "ok" | "taken" | "error"; nights: number; payment: boolean; amountCents: number | null };
+const NO_QUOTE: Quote = { status: "idle", nights: 0, payment: false, amountCents: null };
 type Phase = "idle" | "sending" | "sent" | "failed";
 
 export default function Booking({ lang }: { lang: Lang }) {
@@ -20,6 +22,8 @@ export default function Booking({ lang }: { lang: Lang }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const key = useRef<string>("");
   const [pay, setPay] = useState<Pay>({ url: null, emailSent: false });
+  const [quote, setQuote] = useState<Quote>(NO_QUOTE);
+  const quoteSeq = useRef(0);
 
   useEffect(() => {
     let live = true;
@@ -49,10 +53,33 @@ export default function Booking({ lang }: { lang: Lang }) {
 
   const fmt = (iso: string | null) => (iso ? new Date(iso + "T00:00:00").toLocaleDateString(t.locale, { weekday: "short", day: "numeric", month: "short" }) : "");
 
+  async function checkQuote(arrival: string, departure: string) {
+    const seq = ++quoteSeq.current;
+    setQuote({ ...NO_QUOTE, status: "loading" });
+    try {
+      const r = await fetch(`/api/quote?arrival=${arrival}&departure=${departure}`);
+      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; available?: boolean; nights?: number; payment?: boolean; amountCents?: number | null };
+      if (seq !== quoteSeq.current) return; // raspuns invechit: s-au schimbat datele intre timp
+      if (r.ok && j.ok) setQuote({ status: j.available ? "ok" : "taken", nights: j.nights ?? 0, payment: !!j.payment, amountCents: j.amountCents ?? null });
+      else setQuote({ ...NO_QUOTE, status: "error" });
+    } catch {
+      if (seq === quoteSeq.current) setQuote({ ...NO_QUOTE, status: "error" });
+    }
+  }
+
   function pick(iso: string) {
     if (!ranges || phase === "sending") return;
     setError("");
-    setSel((s) => pickDate(s, iso, isBooked));
+    const next = pickDate(sel, iso, isBooked);
+    setSel(next);
+    if (next.arrival && next.departure) void checkQuote(next.arrival, next.departure);
+    else { quoteSeq.current++; setQuote(NO_QUOTE); }
+  }
+
+  function goToForm() {
+    const el = document.getElementById("reserve-form");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => document.getElementById("reserve-name")?.focus({ preventScroll: true }), 400);
   }
 
   async function submit() {
@@ -70,7 +97,13 @@ export default function Booking({ lang }: { lang: Lang }) {
         body: JSON.stringify({ ...form, arrival: sel.arrival, departure: sel.departure, lang }),
       });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; payment?: { available: boolean; url?: string }; emails?: { client: boolean } };
-      if (res.ok && j.ok) { setPay({ url: j.payment?.available ? (j.payment.url ?? null) : null, emailSent: !!j.emails?.client }); return setPhase("sent"); } // succes afisat DOAR dupa confirmarea serverului
+      if (res.ok && j.ok) {
+        const url = j.payment?.available ? (j.payment.url ?? null) : null;
+        setPay({ url, emailSent: !!j.emails?.client });
+        setPhase("sent");
+        if (url) window.location.assign(url); // direct la plata, fara pas intermediar
+        return;
+      } // succes afisat DOAR dupa confirmarea serverului
       setError(j.error === "dates_taken" ? t.errRange : j.error === "fields" ? t.errFields : j.error === "dates" ? t.errDates : t.errServer);
       key.current = "";
       setPhase("failed");
@@ -87,6 +120,8 @@ export default function Booking({ lang }: { lang: Lang }) {
     setPhase("idle");
     setError("");
     setPay({ url: null, emailSent: false });
+    quoteSeq.current++;
+    setQuote(NO_QUOTE);
     key.current = "";
   }
 
@@ -135,19 +170,35 @@ export default function Booking({ lang }: { lang: Lang }) {
 
       <div>
         {phase !== "sent" ? (
-          <form onSubmit={(e) => { e.preventDefault(); void submit(); }} noValidate>
+          <form id="reserve-form" onSubmit={(e) => { e.preventDefault(); void submit(); }} noValidate style={{ scrollMarginTop: 96 }}>
+            {quote.status !== "idle" && (
+              <div className="panel" role="status" aria-live="polite" style={{ marginBottom: 28, borderColor: quote.status === "ok" ? "var(--color-accent)" : undefined }}>
+                {quote.status === "loading" && <p className="muted" style={{ margin: 0 }}>{t.qChecking}</p>}
+                {quote.status === "taken" && <p className="err" style={{ margin: 0 }}>{t.qTaken}</p>}
+                {quote.status === "error" && <p className="err" style={{ margin: 0 }}>{t.qError}</p>}
+                {quote.status === "ok" && (
+                  <>
+                    <p className="label" style={{ color: "var(--color-accent-700)", margin: 0, display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 10, height: 10, background: "var(--color-accent)" }} />{t.qAvailable}</p>
+                    <p className="display" style={{ fontSize: 20, lineHeight: "28px", margin: "10px 0 0" }}>{fmt(sel.arrival)} → {fmt(sel.departure)} · {quote.nights} {t.qNights}</p>
+                    {quote.amountCents !== null && <p className="display num" style={{ fontSize: 28, lineHeight: "36px", margin: "6px 0 0", color: "var(--color-accent)" }}>{t.qTotal}: {(quote.amountCents / 100).toLocaleString(t.locale, { style: "currency", currency: "EUR" })}</p>}
+                    <p className="muted" style={{ fontSize: 13.5, lineHeight: "22px", margin: "10px 0 0" }}>{quote.payment ? t.qPayNote : t.qReqNote}</p>
+                    <div style={{ marginTop: 14 }}><button type="button" className="btn btn-primary" onClick={goToForm}>{quote.payment ? t.qCtaPay : t.qCtaRequest}</button></div>
+                  </>
+                )}
+              </div>
+            )}
             <div className="form-grid">
               <label className="field">{t.fArrival}<input className="input" readOnly value={fmt(sel.arrival)} placeholder={t.fSelect} /></label>
               <label className="field">{t.fDeparture}<input className="input" readOnly value={fmt(sel.departure)} placeholder={t.fSelect} /></label>
               <label className="field">{t.fAdults}<select className="input" value={form.adults} onChange={(e) => setForm({ ...form, adults: e.target.value })} disabled={busy}>{[1, 2, 3, 4, 5, 6].map((n) => <option key={n}>{n}</option>)}</select></label>
               <label className="field">{t.fChildren}<select className="input" value={form.children} onChange={(e) => setForm({ ...form, children: e.target.value })} disabled={busy}>{[0, 1, 2, 3, 4].map((n) => <option key={n}>{n}</option>)}</select></label>
-              <label className="field full">{t.fName}<input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.fNamePh} autoComplete="name" disabled={busy} /></label>
+              <label className="field full">{t.fName}<input id="reserve-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.fNamePh} autoComplete="name" disabled={busy} /></label>
               <label className="field full">{t.fEmail}<input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" autoComplete="email" disabled={busy} /></label>
               <label className="field full">{t.fNotes}<input className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t.fNotesPh} disabled={busy} /></label>
             </div>
             {error && <p className="err" role="alert">{error}</p>}
             <div style={{ marginTop: 28 }}>
-              <button type="submit" className="btn btn-primary" disabled={busy || !ranges}>{busy ? t.sending : t.fSubmit}</button>
+              <button type="submit" className="btn btn-primary" disabled={busy || !ranges}>{busy ? (quote.payment ? t.redirecting : t.sending) : quote.payment ? t.fSubmitPay : t.fSubmit}</button>
             </div>
             <p className="trust"><Lock />{t.payTrust}</p>
             <p className="muted" style={{ fontSize: 13, lineHeight: "22px", margin: "8px 0 0" }}>{t.fNote}</p>
