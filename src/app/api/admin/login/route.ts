@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "bad_password" }, { status: 401 });
   }
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, makeSession()!, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 8 * 3600 });
+  res.cookies.set(ADMIN_COOKIE, makeSession()!, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 14 * 86_400 });
   await audit("admin.login", ip, "ok");
   return res;
 }

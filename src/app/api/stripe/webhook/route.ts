@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { appendAudit, listReservations, patchReservation, setReservationStatus } from "@/lib/store";
+import { notifyOwner } from "@/lib/push";
 import { ownerEmail, sendMail } from "@/lib/mail";
 import { verifyStripeSignature } from "@/lib/stripe";
 
@@ -29,8 +30,10 @@ export async function POST(req: Request) {
     await patchReservation(id, { paidAt: new Date().toISOString(), stripeSessionId: s.id });
     await appendAudit({ actor: "stripe", action: "payment.conflict", target: id, result: "failed", reason: done.reason });
     if (ownerEmail()) await sendMail(ownerEmail(), "URGENT: plata primita pe date deja ocupate", `Rezervarea ${id} (${existing.arrival} → ${existing.departure}) a fost platita dar datele sunt ocupate. Ramburseaza in Stripe sau rezolva manual.`);
+    void notifyOwner({ title: "URGENT: plată pe date ocupate", body: `Rezervarea ${existing.name} ${existing.arrival} → ${existing.departure} a fost plătită, dar datele sunt ocupate. Rambursează sau rezolvă.`, tag: `conflict-${id}`, url: "/admin?tab=rezervari" });
     return NextResponse.json({ received: true });
   }
+  void notifyOwner({ title: "Plată primită", body: `${existing.name} · ${existing.arrival} → ${existing.departure} · confirmată`, tag: `paid-${id}`, url: "/admin?tab=rezervari" });
   await appendAudit({ actor: "stripe", action: "payment.confirmed", target: id, result: "confirmed" });
   return NextResponse.json({ received: true });
 }

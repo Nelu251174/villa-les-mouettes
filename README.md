@@ -12,7 +12,7 @@ Sursa: brief "Villa Les Mouettes" (02.10.2026), design "Modernist" (Archivo, acc
 |---|---|
 | 13 sectiuni, EN/FR (`/en`, `/fr`), hreflang, OG/Twitter, JSON-LD, sitemap, robots | implementat, verificat in browser |
 | Rezervari server-side, reverificare disponibilitate, confirmare protejata la dubla rezervare | implementat, 12 teste |
-| Admin `/admin` (parola `VLM_ADMIN_PASSWORD` + `VLM_SECRET`): rezervari (confirmare/anulare/plata offline), blocare date, moderare recenzii, factura, outbox, audit | implementat, verificat in browser |
+| Admin `/admin` = aplicatie instalabila pe telefon (PWA, in romana): taburi Azi / Rezervari / Calendar / Recenzii / Setari; alerta pe tot ecranul cu sunet+vibratie cand aplicatia e deschisa; notificari push (web-push, chei VAPID generate automat in `.data/vapid.json`) cand e inchisa. Push real pe telefon: **NEVERIFICAT** (netestat pe un telefon). iPhone: doar dupa "Adauga pe ecranul principal" (iOS 16.4+). Detalii vechi mai jos: `/admin` (parola `VLM_ADMIN_PASSWORD` + `VLM_SECRET`): rezervari (confirmare/anulare/plata offline), blocare date, moderare recenzii, factura, outbox, audit | implementat, verificat in browser |
 | Recenzii: doar oaspeti cu sedere platita, magic-link pe email (token semnat, 7 zile), moderare, agregat real | implementat; **livrarea emailului NEVERIFICATA** (fara `RESEND_API_KEY`) |
 | Emailuri (client, proprietar, factura) prin Resend | implementat; **NEVERIFICAT cu un furnizor real**. Fara cheie, mesajele raman in outbox cu `sent=false` si UI spune asta |
 | Stripe Checkout (3DS cerut) + webhook cu semnatura verificata + factura la ~5 min | implementat; semnatura testata; **NEVERIFICAT cu Stripe real** (fara chei/tarif) |

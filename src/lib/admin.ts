@@ -12,7 +12,7 @@ export function passwordOk(input: string): boolean {
   const a = Buffer.from(input), b = Buffer.from(process.env.VLM_ADMIN_PASSWORD ?? "");
   return a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
 }
-export const makeSession = () => sign("admin", "owner", 8 * 3_600_000);
+export const makeSession = () => sign("admin", "owner", 14 * 86_400_000);
 export async function isAdmin(): Promise<boolean> {
   const c = (await cookies()).get(ADMIN_COOKIE)?.value;
   return !!c && read("admin", c) === "owner";

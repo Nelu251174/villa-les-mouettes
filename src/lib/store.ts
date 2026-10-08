@@ -58,6 +58,37 @@ export const listBlocks = () => readJson<Block>("blocks.json");
 export const listAudit = () => readJson<Audit>("audit.json");
 export const listOutbox = () => readJson<Mail>("outbox.json");
 
+export type PushSub = { endpoint: string; keys: { p256dh: string; auth: string }; createdAt: string; ua: string };
+export const listPushSubs = () => readJson<PushSub>("push.json");
+export function addPushSub(sub: Omit<PushSub, "createdAt">): Promise<void> {
+  return withLock(async () => {
+    const all = (await listPushSubs()).filter((s) => s.endpoint !== sub.endpoint);
+    all.push({ ...sub, createdAt: new Date().toISOString() });
+    await writeJson("push.json", all);
+  });
+}
+export function removePushSubs(endpoints: string[]): Promise<void> {
+  return withLock(async () => {
+    const all = await listPushSubs();
+    const next = all.filter((s) => !endpoints.includes(s.endpoint));
+    if (next.length !== all.length) await writeJson("push.json", next);
+  });
+}
+
+/** Chei VAPID pentru notificari push: generate o singura data si pastrate in volumul de date (nu in cod). */
+export async function readVapid(): Promise<{ publicKey: string; privateKey: string } | null> {
+  try { return JSON.parse(await fs.readFile(path.join(DIR, "vapid.json"), "utf8")); } catch { return null; }
+}
+export function writeVapid(k: { publicKey: string; privateKey: string }): Promise<void> {
+  return withLock(async () => {
+    if (await readVapid()) return; // nu suprascriem niciodata cheile existente (abonatii ar muri)
+    await fs.mkdir(DIR, { recursive: true });
+    const file = path.join(DIR, "vapid.json");
+    await fs.writeFile(file + ".tmp", JSON.stringify(k), { mode: 0o600 });
+    await fs.rename(file + ".tmp", file);
+  });
+}
+
 export function appendAudit(a: Omit<Audit, "at">): Promise<void> {
   return withLock(async () => {
     const all = await listAudit();

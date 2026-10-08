@@ -3,6 +3,7 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["web-push"],
   // radacina Turbopack = acest folder
   turbopack: { root: path.resolve(__dirname) },
   async redirects() {

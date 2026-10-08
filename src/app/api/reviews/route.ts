@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyOwner } from "@/lib/push";
 import { addReview } from "@/lib/store";
 import { readReviewToken } from "@/lib/token";
 
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
   }
   const r = await addReview({ rating, name, text, reservationId });
   if (!r.ok) return NextResponse.json({ ok: false, error: r.reason }, { status: 409 });
+  void notifyOwner({ title: "Recenzie nouă", body: `${name}: ${"★".repeat(rating)} — de aprobat`, tag: `rev-${Date.now()}`, url: "/admin?tab=recenzii" });
   // Intra ca "pending": apare public doar dupa aprobarea proprietarului.
   return NextResponse.json({ ok: true, status: "pending" }, { status: 201 });
 }

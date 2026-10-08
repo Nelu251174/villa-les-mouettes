@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isIso, nightsBetween, toIso } from "@/lib/availability";
 import { MAX_GUESTS, MIN_NIGHTS, priceStay } from "@/lib/pricing";
 import { clientConfirmation, ownerEmail, ownerNotification, sendMail } from "@/lib/mail";
+import { notifyOwner } from "@/lib/push";
 import { createCheckout } from "@/lib/stripe";
 import { appendAudit, createReservation, patchReservation } from "@/lib/store";
 
@@ -38,6 +39,13 @@ export async function POST(req: Request) {
   const r = res.reservation;
   await patchReservation(r.id, { amountCents: price.totalCents });
   await appendAudit({ actor: "guest", action: "reservation.create", target: r.id, result: "pending" });
+  // Alerta pe telefon: nu blocheaza raspunsul si nu poate sa-l strice.
+  void notifyOwner({
+    title: "Rezervare nouă",
+    body: `${name} · ${arrival} → ${departure} · ${adults + children} pers. · ${(price.totalCents / 100).toLocaleString("ro-RO")} EUR`,
+    tag: `res-${r.id}`,
+    url: "/admin?tab=azi",
+  });
 
   // Raspunsul spune exact ce s-a intamplat: sent = livrat de furnizor, nu "pus in coada".
   const c = clientConfirmation(r);
