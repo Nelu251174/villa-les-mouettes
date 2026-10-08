@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { appendAudit, listReservations, patchReservation, setReservationStatus } from "@/lib/store";
+import { callOwner } from "@/lib/call";
 import { notifyOwner } from "@/lib/push";
 import { ownerEmail, sendMail } from "@/lib/mail";
 import { verifyStripeSignature } from "@/lib/stripe";
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     await patchReservation(id, { paidAt: new Date().toISOString(), stripeSessionId: s.id });
     await appendAudit({ actor: "stripe", action: "payment.conflict", target: id, result: "failed", reason: done.reason });
     if (ownerEmail()) await sendMail(ownerEmail(), "URGENT: plata primita pe date deja ocupate", `Rezervarea ${id} (${existing.arrival} → ${existing.departure}) a fost platita dar datele sunt ocupate. Ramburseaza in Stripe sau rezolva manual.`);
+    void callOwner({ ro: "Urgent. S-a primit o plată pentru date deja ocupate la Villa Les Mouettes. Verifică aplicația.", en: "Urgent. A payment was received for dates that are already taken at Villa Les Mouettes. Check the app." }, { tag: `conflict-${id}` });
     void notifyOwner({ title: "URGENT: plată pe date ocupate", body: `Rezervarea ${existing.name} ${existing.arrival} → ${existing.departure} a fost plătită, dar datele sunt ocupate. Rambursează sau rezolvă.`, tag: `conflict-${id}`, url: "/admin?tab=rezervari" });
     return NextResponse.json({ received: true });
   }

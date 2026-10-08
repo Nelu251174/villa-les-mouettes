@@ -9,6 +9,7 @@ type Blk = { id: string; from: string; to: string; note: string };
 type Aud = { at: string; actor: string; action: string; target: string; result: string; reason?: string };
 type Mail = { at: string; to: string; subject: string; sent: boolean; error?: string };
 type Data = { reservations: Res[]; reviews: Rev[]; blocks: Blk[]; audit: Aud[]; outbox: Mail[]; cfg: { mail: boolean; stripe: boolean; calendarLive: boolean } };
+type CallStatus = { configured: boolean; enabled: boolean; phoneMasked: string; sid: string; from: string };
 type Tab = "azi" | "rezervari" | "calendar" | "recenzii" | "setari";
 const TABS: { id: Tab; label: string }[] = [
   { id: "azi", label: "Azi" }, { id: "rezervari", label: "Rezervări" }, { id: "calendar", label: "Calendar" }, { id: "recenzii", label: "Recenzii" }, { id: "setari", label: "Setări" },
@@ -35,6 +36,8 @@ export default function AdminPanel({ authed }: { authed: boolean }) {
   const [push, setPush] = useState<PushState>("off");
   const [awake, setAwake] = useState(false);
   const [installEvt, setInstallEvt] = useState<Event | null>(null);
+  const [call, setCall] = useState<CallStatus | null>(null);
+  const [callForm, setCallForm] = useState({ phone: "", sid: "", token: "", from: "", enabled: true });
   const alarm = useRef<Alarm | null>(null);
   const seen = useRef<Set<string> | null>(null);
 
@@ -145,6 +148,26 @@ export default function AdminPanel({ authed }: { authed: boolean }) {
     getAlarm().unlock();
     const demo: Res = { id: "demo", status: "pending", arrival: iso(new Date()), departure: addD(iso(new Date()), 4), adults: 2, children: 0, name: "Test alarmă", email: "", notes: "", createdAt: new Date().toISOString(), amountCents: 480000 };
     setFresh([demo]);
+  }
+  async function loadCall() {
+    const r = await fetch("/api/admin/call", { cache: "no-store" });
+    if (r.ok) setCall((await r.json()) as CallStatus);
+  }
+  async function saveCall() {
+    setBusy("callsave");
+    const r = await fetch("/api/admin/call", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "save", ...callForm }) });
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+    const why: Record<string, string> = { phone: "Telefon invalid (format +40712345678).", sid: "Account SID invalid (începe cu AC…).", from: "Numărul Twilio invalid (format +1415…).", token: "Lipsește Auth Token-ul." };
+    setMsg(j.ok ? (callForm.enabled ? "Apelul telefonic e ACTIVAT. Apasă „Sună-mă acum” ca să-l verifici." : "Setări salvate, apelul e oprit.") : (why[j.error ?? ""] ?? "Nu s-a salvat."));
+    if (j.ok) { setCallForm({ ...callForm, token: "" }); await loadCall(); }
+    setBusy(null);
+  }
+  async function testCall() {
+    setBusy("calltest");
+    const r = await fetch("/api/admin/call", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "test" }) });
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; reason?: string };
+    setMsg(j.ok ? "Apel inițiat. Telefonul tău ar trebui să sune în câteva secunde." : `Apelul nu a pornit (${j.reason ?? "eroare"}). Verifică datele Twilio și că numărul tău e verificat în Twilio (cont de probă).`);
+    setBusy(null);
   }
   async function install() {
     const e = installEvt as (Event & { prompt?: () => Promise<void> }) | null;
@@ -322,6 +345,22 @@ export default function AdminPanel({ authed }: { authed: boolean }) {
               <label className="adm-check"><input type="checkbox" checked={awake} onChange={(e) => { setAwake(e.target.checked); localStorage.setItem(SCREEN_KEY, e.target.checked ? "1" : "0"); }} /> Ține ecranul aprins cât aplicația e deschisă</label>
               <p className="adm-sub" style={{ marginTop: 12 }}>Cât aplicația e <b>deschisă</b>, o cerere nouă pornește alarma pe tot ecranul, cu sunet și vibrație, până apeși „Am văzut”. Când aplicația e <b>închisă</b>, telefonul afișează notificarea cu vibrație și sunetul de notificare setat în telefon. Un site nu poate forța un ecran complet ca la apel sau un sunet fix cât telefonul e blocat. Pentru volum mare, setează în telefon sunetul notificărilor acestei aplicații la maxim și dezactivează „Nu deranja”.</p>
             </div>
+            <h2 className="adm-h">Apel telefonic la cerere nouă</h2>
+            <div className="adm-card">
+              <p className="adm-sub">Stare: <b>{call?.configured ? (call.enabled ? `ACTIV → ${call.phoneMasked}` : "configurat, dar oprit") : "neconfigurat"}</b>. Telefonul tău sună automat (mesaj vocal) la fiecare cerere nouă, chiar dacă aplicația e închisă. Folosește un cont Twilio (plătești per apel, câțiva cenți). Maxim 8 apeluri pe oră, cel puțin 2 minute între ele.</p>
+              <div className="adm-form" style={{ marginTop: 12 }}>
+                <label className="field">Telefonul tău (format internațional)<input className="input" inputMode="tel" placeholder="+40712345678" value={callForm.phone} onChange={(e) => setCallForm({ ...callForm, phone: e.target.value })} /></label>
+                <label className="field">Twilio Account SID<input className="input" placeholder={call?.sid || "AC…"} value={callForm.sid} onChange={(e) => setCallForm({ ...callForm, sid: e.target.value })} autoComplete="off" /></label>
+                <label className="field">Twilio Auth Token {call?.configured ? "(lasă gol ca să-l păstrezi)" : ""}<input className="input" type="password" value={callForm.token} onChange={(e) => setCallForm({ ...callForm, token: e.target.value })} autoComplete="off" /></label>
+                <label className="field">Număr Twilio (de pe care sună)<input className="input" inputMode="tel" placeholder={call?.from || "+1415…"} value={callForm.from} onChange={(e) => setCallForm({ ...callForm, from: e.target.value })} /></label>
+                <label className="adm-check"><input type="checkbox" checked={callForm.enabled} onChange={(e) => setCallForm({ ...callForm, enabled: e.target.checked })} /> Activează apelul automat</label>
+              </div>
+              <div className="adm-actions">
+                <button type="button" className="btn btn-primary adm-btn" disabled={!!busy} onClick={() => void saveCall()}>{busy === "callsave" ? "…" : "Salvează"}</button>
+                <button type="button" className="btn btn-ghost adm-btn" disabled={!!busy || !call?.configured} onClick={() => void testCall()}>{busy === "calltest" ? "…" : "Sună-mă acum (test)"}</button>
+              </div>
+              <p className="adm-sub" style={{ marginTop: 10 }}>Token-ul se păstrează criptat pe server și nu mai poate fi citit din aplicație. Pe contul de probă Twilio poți suna doar numere verificate în Twilio.</p>
+            </div>
             <h2 className="adm-h">Instalează ca aplicație</h2>
             <div className="adm-card">
               {installEvt ? <button type="button" className="btn btn-primary adm-btn" onClick={() => void install()}>Instalează aplicația</button> : null}
@@ -341,7 +380,7 @@ export default function AdminPanel({ authed }: { authed: boolean }) {
 
       <nav className="adm-tabs" aria-label="Secțiuni">
         {TABS.map((t) => (
-          <button key={t.id} type="button" className={tab === t.id ? "on" : ""} aria-current={tab === t.id} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }}>
+          <button key={t.id} type="button" className={tab === t.id ? "on" : ""} aria-current={tab === t.id} onClick={() => { setTab(t.id); window.scrollTo(0, 0); if (t.id === "setari") void loadCall(); }}>
             {t.label}
             {t.id === "azi" && pending.length > 0 && <b className="adm-count">{pending.length}</b>}
             {t.id === "recenzii" && revPending.length > 0 && <b className="adm-count">{revPending.length}</b>}

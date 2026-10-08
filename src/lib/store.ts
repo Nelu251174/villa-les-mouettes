@@ -75,6 +75,18 @@ export function removePushSubs(endpoints: string[]): Promise<void> {
   });
 }
 
+/** Setari ale aplicatiei (ex. apel telefonic): un singur obiect JSON in volumul de date. */
+export async function readSettings<T extends object>(): Promise<Partial<T>> {
+  try { return JSON.parse(await fs.readFile(path.join(DIR, "settings.json"), "utf8")) as Partial<T>; } catch { return {}; }
+}
+export function patchSettings<T extends object>(fn: (cur: Partial<T>) => Partial<T>): Promise<Partial<T>> {
+  return withLock(async () => {
+    const next = fn(await readSettings<T>());
+    await writeJson("settings.json", next);
+    return next;
+  });
+}
+
 /** Chei VAPID pentru notificari push: generate o singura data si pastrate in volumul de date (nu in cod). */
 export async function readVapid(): Promise<{ publicKey: string; privateKey: string } | null> {
   try { return JSON.parse(await fs.readFile(path.join(DIR, "vapid.json"), "utf8")); } catch { return null; }

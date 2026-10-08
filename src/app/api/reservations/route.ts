@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isIso, nightsBetween, toIso } from "@/lib/availability";
 import { MAX_GUESTS, MIN_NIGHTS, priceStay } from "@/lib/pricing";
 import { clientConfirmation, ownerEmail, ownerNotification, sendMail } from "@/lib/mail";
+import { callOwner } from "@/lib/call";
 import { notifyOwner } from "@/lib/push";
 import { createCheckout } from "@/lib/stripe";
 import { appendAudit, createReservation, patchReservation } from "@/lib/store";
@@ -46,6 +47,10 @@ export async function POST(req: Request) {
     tag: `res-${r.id}`,
     url: "/admin?tab=azi",
   });
+  void callOwner(
+    { ro: `Rezervare nouă la Villa Les Mouettes. ${name.replace(/[^\p{L}\p{N} .'-]/gu, "").slice(0, 40)}, ${nightsBetween(arrival, departure)} nopți, din ${arrival}. Deschide aplicația.`, en: `New reservation request at Villa Les Mouettes. ${nightsBetween(arrival, departure)} nights from ${arrival}. Open the app.` },
+    { tag: `res-${r.id}` },
+  );
 
   // Raspunsul spune exact ce s-a intamplat: sent = livrat de furnizor, nu "pus in coada".
   const c = clientConfirmation(r);
