@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SITE } from "@/lib/site";
 import { mailConfigured, sendMail } from "@/lib/mail";
 import { listReservations, listReviews } from "@/lib/store";
 import { secretConfigured, signReviewToken } from "@/lib/token";
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
   const stay = (await listReservations()).find((r) => r.status === "confirmed" && !!r.paidAt && r.email.toLowerCase() === email && !reviewed.has(r.id));
   if (stay) {
     const token = signReviewToken(stay.id);
-    const base = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
+    const base = SITE.siteUrl;
     const link = `${base}/${lang}/review?token=${token}`;
     await sendMail(
       stay.email,

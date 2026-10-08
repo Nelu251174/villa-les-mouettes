@@ -7,10 +7,13 @@ const nextConfig: NextConfig = {
   // radacina Turbopack = acest folder
   turbopack: { root: path.resolve(__dirname) },
   async redirects() {
-    return [{ source: "/", destination: "/en", permanent: false }];
+    return [{ source: "/", destination: "/fr", permanent: false }];
   },
   async headers() {
-    return [{ source: "/(.*)", headers: [{ key: "X-Content-Type-Options", value: "nosniff" }, { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }] }];
+    return [
+      { source: "/admin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/api/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/(.*)", headers: [{ key: "X-Content-Type-Options", value: "nosniff" }, { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }] }];
   },
 };
 

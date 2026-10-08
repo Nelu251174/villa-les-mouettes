@@ -10,7 +10,8 @@ export const SITE = {
   // Pin exact furnizat de OWNER (link Google Maps, 02.10.2026). Adresa-text ramane generica (strada exacta nu a fost data).
   addressConfirmed: true,
   geo: { lat: 43.756691, lng: 7.448854, confirmed: true },
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "",
+  // Domeniul oficial. Valoarea fixa in cod: variabilele NEXT_PUBLIC_* se citesc la build si lipseau in imaginea Docker.
+  siteUrl: "https://villalesmouettes.com",
 };
 
 export const PHOTOS = {

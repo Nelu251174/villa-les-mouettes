@@ -1,11 +1,12 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { priceStay } from "./pricing";
+import { SITE } from "./site";
 import type { Reservation } from "./store";
 
 /** Plata e disponibila doar cu cheie Stripe si adresa site-ului setate. Suma vine din tarifar (src/lib/pricing.ts). */
 export function paymentConfigured(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY && !!process.env.NEXT_PUBLIC_SITE_URL;
+  return !!process.env.STRIPE_SECRET_KEY;
 }
 
 /** Totalul sejurului in cenți sau null daca regulile (minim nopti / maxim persoane) nu sunt respectate. */
@@ -18,7 +19,7 @@ export async function createCheckout(r: Reservation): Promise<{ url: string; ses
   if (!paymentConfigured()) return null;
   const amount = amountCents(r);
   if (amount === null) return null;
-  const base = process.env.NEXT_PUBLIC_SITE_URL!;
+  const base = SITE.siteUrl;
   const body = new URLSearchParams({
     mode: "payment",
     "payment_method_types[0]": "card",
